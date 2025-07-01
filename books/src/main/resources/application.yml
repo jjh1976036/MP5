@@ -1,0 +1,107 @@
+server:
+  port: 8084
+kafka:
+  topics:
+    book-info-sent: book.published.v1
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer  # 이거 추가!
+      properties:
+        spring.json.type.mapping: bookInfoSent:mp.infra.BookInfoSent
+
+  application:
+    name: books
+  jackson:
+    property-naming-strategy: LOWER_CAMEL_CASE
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  datasource:
+    url: jdbc:h2:file:./data/bookdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        implicit_naming_strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
+    hibernate:
+      ddl-auto: update
+  sql:
+    init:
+      mode: always
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: books
+          destination: mp
+          contentType: application/json
+        event-out:
+          destination: mp
+          contentType: application/json
+
+logging:
+  level:
+    org.hibernate.type: trace
+    org.springframework.cloud: debug
+
+---
+
+spring:
+  profiles: docker
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        implicit_naming_strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
+    hibernate:
+      ddl-auto: create-drop
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: my-kafka:9092
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: books
+          destination: mp
+          contentType: application/json
+        event-out:
+          destination: mp
+          contentType: application/json
+
+kafka:
+  topics:
+    book-info-sent: book.published.v1
