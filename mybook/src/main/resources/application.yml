@@ -1,0 +1,111 @@
+# ✅ 공통 설정 (모든 프로파일에 적용됨)
+server:
+  port: 8080  # 기본 포트 (아래에서 override 됨)
+
+spring:
+  application:
+    name: mybook
+
+jwt:
+  secret: ${JWT_SECRET:defaultTestSecretKeyForDevelopmentOnly123456789}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+---
+
+# ✅ 기본 개발 프로파일
+spring:
+  profiles: default
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: mybook
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        implicit_naming_strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+server:
+  port: 8085  # ✅ 개발 환경 포트
+
+books:
+  service-url: http://localhost:8081
+
+h2:
+  console:
+    enabled: true
+    path: /h2-console
+
+logging:
+  level:
+    org.hibernate.type: trace
+    org.springframework.kafka: debug
+
+---
+
+# ✅ Docker 실행용 프로파일 (수정됨)
+spring:
+  profiles: docker
+
+  kafka:
+    bootstrap-servers: my-kafka:9092
+    consumer:
+      group-id: mybook
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        implicit_naming_strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+server:
+  port: 8085  # ✅ Docker에서도 8085로 고정 (중요!)
+
+books:
+  service-url: http://books:8080
+
+h2:
+  console:
+    enabled: true
+    path: /h2-console
+
+
+
+
+
+
+
+
+
+
+
+
+
