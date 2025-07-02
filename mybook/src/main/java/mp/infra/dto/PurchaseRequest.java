@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class PurchaseRequest {
     private String userId;
     private String bookId;
-    private int point;
+    private int pointUsed;
 }
 
 
