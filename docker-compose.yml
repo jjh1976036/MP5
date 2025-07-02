@@ -1,101 +1,112 @@
-version: '2'
+ersion: '3.8'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - 2181:2181
+    networks:
+      - microservices-network
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.0
     container_name: my-kafka
-    depends_on:
-      - zookeeper
     ports:
       - 9092:9092
+    depends_on:
+      - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://my-kafka:29092,PLAINTEXT_HOST://my-kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://my-kafka:29092,PLAINTEXT_HOST://my-kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - microservices-network
+
+  frontend:
+    image: upzs/aivle12-frontend:latest
+    container_name: frontend
+    ports:
+      - 5173:80
+    networks:
+      - microservices-network
 
   authentication:
-    depends_on:
+    depends_on: 
       - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
+    image: upzs/aivle12-auth:latest
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
+      - SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS=my-kafka:9092
+    env_file:
+      - jwt.env
     ports:
       - 8080:8080
-    working_dir: /usr/src
-    volumes:
-      - ./authentication:/usr/src
-      - ./maven-repo:/root/.m2
-
+    networks:
+      - microservices-network
+      
   authors:
-    depends_on:
+    depends_on: 
       - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
+    image: upzs/aivle12-authors:latest
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
+      - SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS=my-kafka:9092
+    env_file:
+      - jwt.env
     ports:
-      - 8081:8081
-    working_dir: /usr/src
-    volumes:
-      - ./authors:/usr/src
-      - ./maven-repo:/root/.m2
-
-  manuscripts:
-    depends_on:
-      - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
-    ports:
-      - 8082:8082
-    working_dir: /usr/src
-    volumes:
-      - ./manuscripts:/usr/src
-      - ./maven-repo:/root/.m2
-
-  aiservice:
-    depends_on:
-      - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
-    ports:
-      - 8083:8083
-    working_dir: /usr/src
-    volumes:
-      - ./aiservice:/usr/src
-      - ./maven-repo:/root/.m2
-
+      - 8081:8082
+    networks:
+      - microservices-network
+# Currently not implemented services - commented out
+  # manuscripts:
+  #   depends_on: 
+  #     - kafka
+  #   image: adoptopenjdk/maven-openjdk11:latest
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=docker
+  #   command: mvn spring-boot:run
+  #   ports:
+  #     - 8082:8082
+  #   working_dir: /usr/src
+  #   volumes:
+  #     - ./manuscripts:/usr/src
+  #     - ./maven-repo:/root/.m2
+      
+  # aiservice:
+  #   depends_on: 
+  #     - kafka
+  #   image: adoptopenjdk/maven-openjdk11:latest
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=docker
+  #   command: mvn spring-boot:run
+  #   ports:
+  #     - 8083:8083
+  #   working_dir: /usr/src
+  #   volumes:
+  #     - ./aiservice:/usr/src
+  #     - ./maven-repo:/root/.m2
+      
   books:
-    depends_on:
-      - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
-    ports:
-      - 8084:8084
-    working_dir: /usr/src
-    volumes:
-      - ./books:/usr/src
-      - ./maven-repo:/root/.m2
-
+   depends_on: 
+     - kafka
+   image: adoptopenjdk/maven-openjdk11:latest
+   environment:
+     - SPRING_PROFILES_ACTIVE=docker
+   command: mvn spring-boot:run
+   ports:
+     - 8084:8084
+   working_dir: /usr/src
+   volumes:
+     - ./books:/usr/src
+     - ./maven-repo:/root/.m2
+      
   mybook:
-    depends_on:
+    depends_on: 
       - kafka
     image: adoptopenjdk/maven-openjdk11:latest
     environment:
@@ -107,47 +118,66 @@ services:
     volumes:
       - ./mybook:/usr/src
       - ./maven-repo:/root/.m2
-
-  payments:
-    depends_on:
+      
+  # payments:
+  #   depends_on: 
+  #     - kafka
+  #   image: adoptopenjdk/maven-openjdk11:latest
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=docker
+  #   command: mvn spring-boot:run
+  #   ports:
+  #     - 8086:8086
+  #   working_dir: /usr/src
+  #   volumes:
+  #     - ./payments:/usr/src
+  #     - ./maven-repo:/root/.m2
+      
+  # points:
+  #   depends_on: 
+  #     - kafka
+  #   image: adoptopenjdk/maven-openjdk11:latest
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=docker
+  #   command: mvn spring-boot:run
+  #   ports:
+  #     - 8087:8087
+  #   working_dir: /usr/src
+  #   volumes:
+  #     - ./points:/usr/src
+  #     - ./maven-repo:/root/.m2
+      
+  notifications:
+    depends_on: 
       - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
+    image: upzs/aivle12-notifications:latest
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
+      - SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS=my-kafka:9092
+    env_file:
+      - jwt.env
     ports:
-      - 8086:8086
-    working_dir: /usr/src
-    volumes:
-      - ./payments:/usr/src
-      - ./maven-repo:/root/.m2
+      - 8088:8080
+    networks:
+      - microservices-network
 
-  points:
+
+
+  # Optional: Kafka UI for monitoring
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
     depends_on:
       - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
     ports:
-      - 8087:8087
-    working_dir: /usr/src
-    volumes:
-      - ./points:/usr/src
-      - ./maven-repo:/root/.m2
-
-  notification:
-    depends_on:
-      - kafka
-    image: adoptopenjdk/maven-openjdk11:latest
+      - 9090:8080
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    command: mvn spring-boot:run
-    ports:
-      - 8088:8088
-    working_dir: /usr/src
-    volumes:
-      - ./notification:/usr/src
-      - ./maven-repo:/root/.m2
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: my-kafka:9092
+    networks:
+      - microservices-network
 
+networks:
+  microservices-network:
+    driver: bridge 
 
